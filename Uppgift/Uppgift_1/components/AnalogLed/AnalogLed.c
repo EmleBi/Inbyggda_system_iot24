@@ -1,174 +1,236 @@
 /*#include "AnalogLed.h"
 
-void analog_led_init(int pin, int duty_cycle, double frequency, AnalogLed_t *led) {
+static uint64_t start_time = 0;
+
+void analogLed_init(AnalogLed* led, uint8_t pin) {
     led->pin = pin;
-    led->timer_channel = 0;
-    led->period = 3000; // 3 sek sinusvågor
-    led->last_update = xTaskGetTickCount();
-    led->duty_cycle = (duty_cycle >= 0 && duty_cycle <= 255) //? duty_cycle : 200; // Använd ett fast värde mellan 0 och 255
-    led->target_duty_cycle = led->duty_cycle;
-    led->amplitude = 1.0;
-    led->frequency = (frequency >= 0.0) ? frequency : 1.0;
-    led->led_on = false; // Initialisera LED till av
+    led->brightness = 0;
+    led->period = 0;
+    led->blink_on = 0;
+    led->blink_off = 0;
+    led->is_blinking = 0;
+    start_time = esp_timer_get_time();
 
+    // Init LED PWM funktion 
     ledc_timer_config_t ledc_timer = {
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .timer_num = LEDC_TIMER_0,
-        .duty_resolution = LEDC_TIMER_8_BIT,
-        .freq_hz = 5000,
-        .clk_cfg = LEDC_AUTO_CLK
+        .speed_mode       = LEDC_LOW_SPEED_MODE,  
+        .duty_resolution  = LEDC_TIMER_13_BIT,
+        .timer_num        = LEDC_TIMER_0,
+        .freq_hz          = 5000,  
+        .clk_cfg          = LEDC_AUTO_CLK
     };
-
     ledc_timer_config(&ledc_timer);
 
     ledc_channel_config_t ledc_channel = {
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .channel = led->timer_channel,
-        .timer_sel = LEDC_TIMER_0,
-        .intr_type = LEDC_INTR_DISABLE,
-        .gpio_num = pin,
-        .duty = 0,
-        .hpoint = 0
+        .speed_mode     = LEDC_LOW_SPEED_MODE, 
+        .channel        = LEDC_CHANNEL_0,
+        .timer_sel      = LEDC_TIMER_0,
+        .intr_type      = LEDC_INTR_DISABLE,
+        .gpio_num       = pin,
+        .duty           = 0, 
+        .hpoint         = 0
     };
-
     ledc_channel_config(&ledc_channel);
 }
 
-void setAnalogLed(bool led_on, int duty_cycle, double frequency, AnalogLed_t *led) {
-    if (duty_cycle < 0) duty_cycle = 0;
-    if (duty_cycle > 255) duty_cycle = 255;
-    led->led_on = led_on;
-    led->target_duty_cycle = duty_cycle;
-    led->frequency = frequency;
-}
-
-void update_analog(AnalogLed_t *led) {
-    TickType_t now = xTaskGetTickCount();
-    TickType_t elapsed = now - led->last_update;
-
-    if (elapsed > pdMS_TO_TICKS(100)) {
-        led->last_update = now;
-        double delta = led->target_duty_cycle - led->amplitude;
-        led->amplitude += delta * 0.1;
-
-        if (!led->led_on) {
-            led->duty_cycle = 0;
-        } else if (led->frequency == 0.0) {
-            led->duty_cycle = led->target_duty_cycle; 
-        } else {
-            double angle = (2.0 * M_PI * ((double)(now % pdMS_TO_TICKS(led->period)) / (double)pdMS_TO_TICKS(led->period))) * led->frequency;
-            led->duty_cycle = (int)(0.5 * (1.0 + sin(angle)) * led->target_duty_cycle);
-        }
-
-        ledc_set_duty(LEDC_LOW_SPEED_MODE, led->timer_channel, led->duty_cycle);
-        ledc_update_duty(LEDC_LOW_SPEED_MODE, led->timer_channel);
-
-        printf("LED Pin: %d\n", led->pin);
-        printf("Elapsed Time: %u ticks\n", (unsigned int)elapsed);
-        printf("Duty Cycle: %d\n", led->duty_cycle);
+void analogLed_update(AnalogLed* led) {
+    if (led->blink_off) {
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 0); 
+        ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0); 
+    } else if (led->blink_on) {
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 8191); 
+        ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0); 
+    } else if (led->is_blinking && led->period > 0) {
+        uint64_t time_elapsed = esp_timer_get_time() - start_time;
+        float sin_value = (sin(2 * M_PI * (time_elapsed % (led->period * 1000)) / (led->period * 1000)) + 1) / 2;
+        uint32_t duty = (uint32_t)(sin_value * led->brightness * 8191 / 255);
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, duty); 
+        ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0); 
+    } else {
+        uint32_t duty = led->brightness * 8191 / 255;
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, duty); 
+        ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0); 
     }
 }
 
-void sin_wave(double period, AnalogLed_t *led) {
+void analogLed_setBrightness(AnalogLed* led, uint8_t value) {
+    if (value <= 255) {
+        led->blink_off = 0;
+        led->blink_on = 1;
+        led->is_blinking = 0;
+    } else if (value == 0) {
+        led->blink_off = 1;
+        led->blink_on = 0;
+        led->is_blinking = 0;
+    } else {
+        led->brightness = value;
+        led->blink_off = 0;
+        led->blink_on = 0;
+        led->is_blinking = 1;
+    }
+    analogLed_update(led);
+}
+
+void analogLed_setBlinking(AnalogLed* led, uint8_t is_blinking) {
+    led->is_blinking = is_blinking;
+}*/
+
+
+
+/*#include "AnalogLed.h"
+
+static uint64_t start_time = 0;
+
+void analogLed_init(AnalogLed* led, uint8_t pin) {
+    led->pin = pin;
+    led->brightness = 255; // Standard ljusstyrka
+    led->period = 4000; // Standard blinkperiod
+    led->blink_on = 0;
+    led->blink_off = 0;
+    led->is_blinking = 0;
+    led->mode_changed = 0; // Initialt har läget inte ändrats
+    start_time = esp_timer_get_time();
+
+    // Init LED PWM funktion 
+    ledc_timer_config_t ledc_timer = {
+        .speed_mode       = LEDC_LOW_SPEED_MODE,
+        .duty_resolution  = LEDC_TIMER_13_BIT,
+        .timer_num        = LEDC_TIMER_0,
+        .freq_hz          = 5000,
+        .clk_cfg          = LEDC_AUTO_CLK
+    };
+    ledc_timer_config(&ledc_timer);
+
+    ledc_channel_config_t ledc_channel = {
+        .speed_mode     = LEDC_LOW_SPEED_MODE,
+        .channel        = LEDC_CHANNEL_0,
+        .timer_sel      = LEDC_TIMER_0,
+        .intr_type      = LEDC_INTR_DISABLE,
+        .gpio_num       = pin,
+        .duty           = 0,
+        .hpoint         = 0
+    };
+    ledc_channel_config(&ledc_channel);
+}
+
+void analogLed_update(AnalogLed* led) {
+    if (led->mode_changed) { // Om läget har ändrats, uppdatera blinkläget
+        if (led->blink_off) {
+            led->is_blinking = 0;
+        } else if (led->blink_on) {
+            led->is_blinking = 1;
+        }
+        led->mode_changed = 0; // Läget har nu uppdaterats
+    }
+
+    if (led->blink_off) {
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 0);
+        ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
+    } else if (led->is_blinking) {
+        uint64_t time_elapsed = esp_timer_get_time() - start_time;
+        float sin_value = (sin(2 * M_PI * time_elapsed / (led->period * 1000)) + 1) / 2; // Mjukare sinusvåg
+        uint32_t duty = (uint32_t)(sin_value * led->brightness * 8191 / 255);
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, duty);
+        ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
+    } else if (led->blink_on) {
+        uint32_t duty = led->brightness * 8191 / 255;
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, duty);
+        ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
+    } else {
+        uint32_t duty = led->brightness * 8191 / 255;
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, duty);
+        ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
+    }
+}
+
+void setAnalogLed(AnalogLed* led, uint8_t value) {
+    led->brightness = value;
+    led->blink_off = 0;
+    led->blink_on = 1;
+    led->is_blinking = 0;
+    analogLed_update(led);
+}
+
+void analogLed_setBlinking(AnalogLed* led, uint32_t period) {
     led->period = period;
-} */
+    led->is_blinking = 1;
+}
+
+void set_led_blink_mode(AnalogLed* led, uint8_t blink_on, uint8_t blink_off) {
+    led->blink_on = blink_on;
+    led->blink_off = blink_off;
+    led->mode_changed = 1; // Indikerar att läget har ändrats
+}*/
 
 #include "AnalogLed.h"
 
-void analog_led_init(int pin, int duty_cycle, double frequency, AnalogLed_t *led) {
+void analog_led_init(AnalogLED_t *led, int pin) {
     led->pin = pin;
-    led->timer_channel = 0;
-    led->period = 3000; // 3 sek sinusvågor
-    led->last_update = xTaskGetTickCount();
-    led->duty_cycle = (duty_cycle >= 0 && duty_cycle <= 255) ? duty_cycle : 200; // Använd ett fast värde mellan 0 och 255
-    led->target_duty_cycle = led->duty_cycle;
-    led->amplitude = 1.0;
-    led->frequency = (frequency >= 0.0) ? frequency : 1.0;
-    led->led_on = false; // Initialisera LED till av
-    led->behavior = 0; // Initialisera beteende till 0
+    led->value = 0;
+    led->is_sin_wave = 0;
+    led->period = 0;
+    led->amplitude = 0;
+    led->last_update = esp_timer_get_time() / 1000;
 
+    // Configure LEDC peripheral for PWM output
     ledc_timer_config_t ledc_timer = {
         .speed_mode = LEDC_LOW_SPEED_MODE,
+        .duty_resolution = LEDC_TIMER_10_BIT,
         .timer_num = LEDC_TIMER_0,
-        .duty_resolution = LEDC_TIMER_8_BIT,
         .freq_hz = 5000,
         .clk_cfg = LEDC_AUTO_CLK
     };
-
     ledc_timer_config(&ledc_timer);
 
     ledc_channel_config_t ledc_channel = {
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .channel = led->timer_channel,
-        .timer_sel = LEDC_TIMER_0,
-        .intr_type = LEDC_INTR_DISABLE,
         .gpio_num = pin,
+        .speed_mode = LEDC_LOW_SPEED_MODE,
+        .channel = LEDC_CHANNEL_0,
+        .intr_type = LEDC_INTR_FADE_END,
+        .timer_sel = LEDC_TIMER_0,
         .duty = 0,
         .hpoint = 0
     };
-
     ledc_channel_config(&ledc_channel);
 }
 
-void setAnalogLed(bool led_on, int duty_cycle, double frequency, int behavior, AnalogLed_t *led) {
-    if (duty_cycle < 0) duty_cycle = 0;
-    if (duty_cycle > 255) duty_cycle = 255;
-    led->led_on = led_on;
-    led->target_duty_cycle = duty_cycle;
-    led->frequency = frequency;
-    led->behavior = behavior;
+void analog_led_update(AnalogLED_t *led) {
+    if (led->is_sin_wave) {
+        uint64_t now = esp_timer_get_time() / 1000;
+        uint64_t elapsed = now - led->last_update;
 
-    switch (behavior) {
-        case 0: // LED släckt
-            led->duty_cycle = 0;
-            ledc_set_duty(LEDC_LOW_SPEED_MODE, led->timer_channel, 0);
-            ledc_update_duty(LEDC_LOW_SPEED_MODE, led->timer_channel);
-            break;
-        case 1: // LED lyser jämt
-            led->duty_cycle = duty_cycle;
-            ledc_set_duty(LEDC_LOW_SPEED_MODE, led->timer_channel, duty_cycle);
-            ledc_update_duty(LEDC_LOW_SPEED_MODE, led->timer_channel);
-            break;
-        case 2: // LED blinkar i sinusvågor
-            led->amplitude = duty_cycle / 2.0;
-            led->period = 1.0 / frequency * 1000; // Perioden i millisekunder
-            break;
-        default:
-            printf("Okänt beteende: %d\n", behavior);
-            break;
-    }
-}
+        //aktuella duty cycle med användning av sinus våg
+        double radians = 2 * M_PI * elapsed / led->period;
+        led->value = (int)((led->amplitude / 2) * (1 + sin(radians)));
 
-void update_analog(AnalogLed_t *led) {
-    TickType_t now = xTaskGetTickCount();
-    TickType_t elapsed = now - led->last_update;
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, led->value);
+        ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
 
-    if (elapsed > pdMS_TO_TICKS(100)) {
         led->last_update = now;
-        double delta = led->target_duty_cycle - led->amplitude;
-        led->amplitude += delta * 0.1;
-
-        if (!led->led_on) {
-            led->duty_cycle = 0;
-        } else if (led->frequency == 0.0) {
-            led->duty_cycle = led->target_duty_cycle; 
-        } else {
-            double angle = (2.0 * M_PI * ((double)(now % pdMS_TO_TICKS(led->period)) / (double)pdMS_TO_TICKS(led->period))) * led->frequency;
-            led->duty_cycle = (int)(0.5 * (1.0 + sin(angle)) * led->target_duty_cycle);
-        }
-
-        ledc_set_duty(LEDC_LOW_SPEED_MODE, led->timer_channel, led->duty_cycle);
-        ledc_update_duty(LEDC_LOW_SPEED_MODE, led->timer_channel);
-
-        printf("LED Pin: %d\n", led->pin);
-        printf("Elapsed Time: %u ticks\n", (unsigned int)elapsed);
-        printf("Duty Cycle: %d\n", led->duty_cycle);
     }
 }
 
-void sin_wave(double period, AnalogLed_t *led) {
-    led->period = period;
+void analog_set_led(AnalogLED_t *led, int value) {
+    led->is_sin_wave = 0;
+    led->value = value;
+
+    ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, value);
+    ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
 }
 
+void analog_sin_wave(AnalogLED_t *led, int period, int amplitude) {
+    led->is_sin_wave = 1;
+    led->period = period;
+    led->amplitude = amplitude;
+    led->last_update = esp_timer_get_time() / 1000;
+}
 
+void analog_sin_on(AnalogLED_t *led) {
+    led->is_sin_wave = 1;
+}
+
+void analog_sin_off(AnalogLED_t *led) {
+    led->is_sin_wave = 0;
+    analog_set_led(led, 0);
+}
 

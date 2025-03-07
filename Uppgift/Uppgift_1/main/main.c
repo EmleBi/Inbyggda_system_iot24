@@ -58,28 +58,56 @@ void app_main(void) {
     }
 }*/
 
-#include "driver/gpio.h"
-#include "driver/ledc.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include <math.h>
-#include <stdio.h>
-#include "AnalogLed.h"
-
-#define SIN_GPIO 2
+/*#include "AnalogLed.h"
 
 void app_main(void) {
-    AnalogLed led_A;
-    printf("Init AnalogLed\n");
-    analogLed_init(&led_A, SIN_GPIO);
-    analogLed_setBrightness(&led_A, 200); // justering av ljusstyrkan
-    analogLed_setSinWave(&led_A, 4000); // Sinus vågor 4 sekunder 2 upp - 2 ner 
+    AnalogLed led;
+    analogLed_init(&led, 2); //pin 2
     
+    analogLed_setBlinking(&led, 4000); // blinkning i sinusvågor är på
+    analogLed_setBrightness(&led, 255); // justering av ljuset
+
     while (1) {
-        vTaskDelay(pdMS_TO_TICKS(10)); // uppdateringens intervall
-        analogLed_update(&led_A);
+        analogLed_update(&led); 
+        vTaskDelay(pdMS_TO_TICKS(10)); // uppdatering period
+    }
+}*/
+
+/*#include "AnalogLed.h"
+
+void app_main(void) {
+    AnalogLed led;
+    
+    analogLed_init(&led, 2); // pin 2
+
+    set_led_blink_mode(&led, 1, 0); // blink_on till 1 och blink_off till 0 för blinkning
+    setAnalogLed(&led, 255); // justering av ljuset
+
+
+    while (1) {
+        analogLed_update(&led);
+        vTaskDelay(pdMS_TO_TICKS(10)); // uppdatering period
+    }
+}*/
+
+#include "AnalogLed.h"
+
+AnalogLED_t my_led;
+
+void app_main(void) {
+    analog_led_init(&my_led, ANALOG_LED_PIN);
+
+    analog_set_led(&my_led, 512); // Halv ljusstyrka (0-1023)
+    analog_sin_wave(&my_led, 4000, 1023); // 1 sekund period, full amplitud
+    // Slå på sinusvågorna
+    analog_sin_on(&my_led);
+
+    while (1) {
+        analog_led_update(&my_led);
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
+
 
 
 
