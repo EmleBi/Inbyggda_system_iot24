@@ -29,7 +29,7 @@ void app_main(void)
 }*/
 
 
-/*VÄL-FUNGERANDE KOD TILL ANALOG-LED HÄR NEDAN:*/
+/*VÄL-FUNGERANDE KOD / ANALOG-LED / NEDAN:*/
 /*#include "driver/gpio.h"
 #include "driver/ledc.h"
 #include "freertos/FreeRTOS.h"
@@ -40,20 +40,51 @@ void app_main(void)
 
 void app_main(void) {
     AnalogLed_t led;
-    analog_led_init(2, &led);
+    analog_led_init(2, 200, 0.0, &led); // Initialisera med ett fast värde, t.ex. 200, och frekvens
+    setAnalogLed(true, 255, 1.0, &led);
 
     while (1) {
-        // För att blinka: setAnalogLed(true, 1.00, 1.0, &led);
-        // För att släcka: setAnalogLed(false, 0.0, 0.0, &led);
-        // För att lysa jämt: setAnalogLed(true, 1.00, 0.0, &led);
-        
-        setAnalogLed(true, 1.00, 1.0, &led); // Justering
+        // För att få LED-lampan att lysa jämt:
+        //setAnalogLed(true, 255, 1.0, &led); // Sätt duty cycle till 255 och frekvens till 0.0
+
+        // För att släcka LED-lampan:
+        // setAnalogLed(false, 0, 0.0, &led); // Sätt LED-lampan till av och duty cycle till 0
+
+        // För att få LED-lampan att blinka i sinusvågor:
+        // setAnalogLed(true, 200, 1.0, &led); // Sätt duty cycle till 200 och frekvens till 1.0
+
         update_analog(&led);
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }*/
 
 #include "driver/gpio.h"
+#include "driver/ledc.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include <math.h>
+#include <stdio.h>
+#include "AnalogLed.h"
+
+#define SIN_GPIO 2
+
+void app_main(void) {
+    AnalogLed led_A;
+    printf("Init AnalogLed\n");
+    analogLed_init(&led_A, SIN_GPIO);
+    analogLed_setBrightness(&led_A, 200); // justering av ljusstyrkan
+    analogLed_setSinWave(&led_A, 4000); // Sinus vågor 4 sekunder 2 upp - 2 ner 
+    
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(10)); // uppdateringens intervall
+        analogLed_update(&led_A);
+    }
+}
+
+
+
+/*nedan1: Potentiometer som jag har påbörjat*/
+/*#include "driver/gpio.h"
 #include "driver/adc.h"
 #include <stdio.h>
 #include "Potentiometer\include\Potentiometer.h"
@@ -74,4 +105,4 @@ void app_main(void) {
         pot_update(&pot1);
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
-}
+}*/

@@ -1,5 +1,5 @@
 
-#ifndef POTENTIOMETER_H
+/*#ifndef POTENTIOMETER_H
 #define POTENTIOMETER_H
 
 #include "driver/adc.h"
@@ -20,7 +20,7 @@ void pot_update(Potentiometer_t* pot);
 int pot_getValue(Potentiometer_t* pot);
 void pot_setOnThreshold(Potentiometer_t* pot, uint32_t threshold, bool risingEdge, void (*onThreshold)(int channel, uint32_t value));
 
-#endif
+#endif*/
 
 
 

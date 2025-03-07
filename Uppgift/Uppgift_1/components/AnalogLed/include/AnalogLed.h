@@ -1,5 +1,5 @@
-/*#ifndef ANALOG_LED_H
-#define ANALOG_LED_H
+/*#ifndef ANALOGLED_H
+#define ANALOGLED_H
 
 #include "driver/gpio.h"
 #include "driver/ledc.h"
@@ -15,19 +15,20 @@ typedef struct {
     int timer_channel;
     TickType_t last_update;
     double period;
-    double duty_cycle;
-    double target_duty_cycle;
+    int duty_cycle; // Använd ett fast värde som t.ex. 200
+    int target_duty_cycle;
     double amplitude;
     double frequency;
-    bool led_on; //LED:ens läge
+    bool led_on; // LED-läget
 } AnalogLed_t;
 
-void analog_led_init(AnalogLed_t *led, int pin, int timer_channel, double period);
+void analog_led_init(int pin, int duty_cycle, double frequency, AnalogLed_t *led);
 void update_analog(AnalogLed_t *led);
-void setAnalogLed(AnalogLed_t *led, bool led_on, double duty_cycle, double frequency);
-void sin_wave(AnalogLed_t *led, double period);
+void setAnalogLed(bool led_on, int duty_cycle, double frequency, AnalogLed_t *led);
+void sin_wave(double period, AnalogLed_t *led);
 
-#endif*/
+#endif // ANALOGLED_H */
+
 
 #ifndef ANALOGLED_H
 #define ANALOGLED_H
@@ -46,18 +47,19 @@ typedef struct {
     int timer_channel;
     TickType_t last_update;
     double period;
-    double duty_cycle;
-    double target_duty_cycle;
+    int duty_cycle = 255; // Använd ett fast värde som t.ex. 200
+    int target_duty_cycle;
     double amplitude;
     double frequency;
-    bool led_on; // Ny flagga för LED-läget
+    bool led_on; // LED-läget
+    //int behavior; // Lägg till en variabel för att hålla lampans beteende
 } AnalogLed_t;
 
-void analog_led_init(int pin, AnalogLed_t *led);
+void analog_led_init(int pin, int duty_cycle, double frequency, AnalogLed_t *led);
 void update_analog(AnalogLed_t *led);
-void setAnalogLed(bool led_on, double duty_cycle, double frequency, AnalogLed_t *led); 
+void setAnalogLed(bool led_on, int duty_cycle, double frequency, int behavior, AnalogLed_t *led);
 void sin_wave(double period, AnalogLed_t *led);
 
-#endif
+#endif // ANALOGLED_H
 
 

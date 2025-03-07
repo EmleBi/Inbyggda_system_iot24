@@ -1,4 +1,4 @@
-#include "Potentiometer.h"
+/*#include "Potentiometer.h"
 #include "esp_log.h"
 
 #define ADC_WIDTH ADC_WIDTH_BIT_12
@@ -45,4 +45,4 @@ void pot_setOnThreshold(Potentiometer_t* pot, uint32_t threshold, bool risingEdg
     pot->threshold = threshold;
     pot->risingEdge = risingEdge;
     pot->onThreshold = onThreshold;
-}
+}*/
