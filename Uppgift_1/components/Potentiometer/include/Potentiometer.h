@@ -43,24 +43,19 @@ void threshold_handler(int pin, int value,int edge_type);
 #include <stdbool.h>
 #include "esp_log.h"
 
-// Typedef för callback
 typedef void (*adc_sensor_threshold_callback_t)(int adc_pin, int value, bool rising_edge);
 
-// Sensorstruktur
 typedef struct {
     int adc_pin;
     int threshold;
-    int previous_value;
-    bool risingEdge; // Ny boolean för stigande flank
-    adc_sensor_threshold_callback_t on_threshold;
+    bool risingEdge; // true = rising edge, false = falling edge
     adc_oneshot_unit_handle_t adc_handle;
+    adc_sensor_threshold_callback_t callback;
 } adc_sensor_t;
 
-// Funktionsdeklarationer
-void adc_sensor_init(adc_sensor_t *sensor, int adc_pin);
-void adc_sensor_update(adc_sensor_t *sensor, int potentiometer_value);
-int adc_sensor_get_value(adc_sensor_t *sensor);
-void adc_sensor_set_on_threshold(adc_sensor_t *sensor, bool rising_edge, adc_sensor_threshold_callback_t callback);
+void adc_init(adc_sensor_t *sensor, int adc_pin);
+void adc_update(adc_sensor_t *sensor);
+void adc_set_on_threshold(adc_sensor_t *sensor, int threshold, bool risingEdge, adc_sensor_threshold_callback_t callback);
 
 #endif
 

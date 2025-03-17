@@ -29,8 +29,7 @@ void app_main(void)
 }*/
 
 //nedan ANALOG LED
-
-#include "AnalogLed.h"
+/*#include "AnalogLed.h"
 
 AnalogLED_t my_led;
 
@@ -44,10 +43,7 @@ void app_main(void) {
         analog_led_update(&my_led);
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
-}
-
-
-
+}*/
 
 //nedan POTENTIOMETER version 1 och 2 (förbättrad)
 
@@ -74,15 +70,12 @@ void app_main() {
     }
 }*/
 
-/*#include <stdio.h>
+#include <stdio.h>
 #include "Potentiometer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
 #define ADC_PIN ADC_CHANNEL_4
-#define POTENTIOMETER_PIN ADC_CHANNEL_5 // Potentiometer för att ändra tröskelvärde
-
-bool rising_edge; // Global boolean för stigande flank
 
 void threshold_handler(int pin, int value, bool rising_edge) {
     if (rising_edge) {
@@ -94,30 +87,13 @@ void threshold_handler(int pin, int value, bool rising_edge) {
 
 void app_main() {
     adc_sensor_t sensor;
-    adc_sensor_t potentiometer;
+    adc_init(&sensor, ADC_PIN);
 
-    // Initialisera ADC för både sensorn och potentiometern
-    adc_sensor_init(&sensor, ADC_PIN);
-    adc_sensor_init(&potentiometer, POTENTIOMETER_PIN);
-
-    // Här kan vi ställa in rising_edge till true (rising) eller false (falling)
-    adc_sensor_set_on_threshold(&sensor, true, threshold_handler); // Exempel: stigande flank
+    // Inställning: true för Rising Edge, false för Falling Edge
+    adc_set_on_threshold(&sensor, 2000, true, threshold_handler);
 
     while (1) {
-        // Läs potentiometerns värde för att uppdatera tröskelvärdet
-        int potentiometer_value = adc_sensor_get_value(&potentiometer);
-
-        // Uppdatera sensorn och passera potentiometerns värde
-        adc_sensor_update(&sensor, potentiometer_value);
-
-        // Visa den aktuella statusen för rising_edge
-        if (sensor.risingEdge) {
-            printf("Rising Edge är aktiv (true)\n");
-        } else {
-            printf("Falling Edge är aktiv (false)\n");
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(500)); // Fördröjning
+        adc_update(&sensor);
+        vTaskDelay(pdMS_TO_TICKS(500));
     }
-}*/
-
+}
