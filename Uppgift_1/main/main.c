@@ -91,7 +91,7 @@ void app_main(void) {
 }*/
 
 //nedan ANALOG LED
-/*#include "AnalogLed.h"
+#include "AnalogLed.h"
 
 AnalogLED_t my_led;
 
@@ -104,13 +104,18 @@ void app_main(void) {
         analog_led_update(&my_led);
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
-}*/
+}
 
 //nedan POTENTIOMETER
 
-#include "Potentiometer.h"
+/*#include <stdio.h>
+#include "Potentiometer/include/Potentiometer.h"
+#include "hal/adc_types.h"
+#include "esp_adc/adc_oneshot.h"
+#include "freertos/FreeRTOS.h"
+
   
-#define ADC_PIN ADC_CHANNEL_5 
+#define ADC_PIN ADC_CHANNEL_4
   
   
   
@@ -124,4 +129,4 @@ void app_main() {
         adc_update(&sensor);
         vTaskDelay(pdMS_TO_TICKS(500)); 
     }
-}
+}*/
