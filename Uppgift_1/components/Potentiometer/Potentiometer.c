@@ -1,4 +1,4 @@
-#include "Potentiometer.h"
+/*#include "Potentiometer.h"
 
 static const char *TAG = "ADC_SENSOR";
 
@@ -63,5 +63,69 @@ void threshold_handler(int pin, int value, int edge_type) {
     } else if (edge_type == EDGE_FALLING) {
         printf("Falling Edge Reached on ADC pin %d! Value: %d\n", pin, value);
     }
+}*/
+
+#include "Potentiometer.h"
+
+static const char *TAG = "ADC_SENSOR";
+
+void adc_sensor_init(adc_sensor_t *sensor, int adc_pin) {
+    sensor->adc_pin = adc_pin;
+    sensor->threshold = 2000; // Första standardvärdet
+    sensor->previous_value = -1;  // Initialt värde
+    sensor->risingEdge = false;  // Initialiserad till false
+    sensor->on_threshold = NULL;
+
+    adc_oneshot_unit_init_cfg_t adc_config = {
+        .unit_id = ADC_UNIT_1,
+        .clk_src = ADC_DIGI_CLK_SRC_DEFAULT
+    };
+    adc_oneshot_new_unit(&adc_config, &sensor->adc_handle);
+
+    adc_oneshot_chan_cfg_t channel_config = {
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
+        .atten = ADC_ATTEN_DB_12
+    };
+    adc_oneshot_config_channel(sensor->adc_handle, sensor->adc_pin, &channel_config);
+
+    ESP_LOGI(TAG, "ADC-sensor initierad på pin %d", adc_pin);
 }
+
+void adc_sensor_update(adc_sensor_t *sensor, int potentiometer_value) {
+    int value;
+    adc_oneshot_read(sensor->adc_handle, sensor->adc_pin, &value);
+
+    // Tröskelvärdet sätts till potentiometerns aktuella värde
+    sensor->threshold = potentiometer_value;
+
+    if (sensor->previous_value == -1) {
+        sensor->previous_value = value;
+        return;
+    }
+
+    if (sensor->on_threshold) {
+        if (value > sensor->threshold && !sensor->risingEdge) {
+            sensor->on_threshold(sensor->adc_pin, value, true); // rising_edge = true
+            sensor->risingEdge = true;
+        } else if (value < sensor->threshold && sensor->risingEdge) {
+            sensor->on_threshold(sensor->adc_pin, value, false); // rising_edge = false
+            sensor->risingEdge = false;
+        }
+    }
+
+    sensor->previous_value = value;
+}
+
+int adc_sensor_get_value(adc_sensor_t *sensor) {
+    int value;
+    adc_oneshot_read(sensor->adc_handle, sensor->adc_pin, &value);
+    return value;
+}
+
+void adc_sensor_set_on_threshold(adc_sensor_t *sensor, bool rising_edge, adc_sensor_threshold_callback_t callback) {
+    sensor->risingEdge = rising_edge;
+    sensor->on_threshold = callback;
+}
+
+
 

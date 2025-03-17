@@ -28,85 +28,28 @@ void app_main(void)
   }
 }*/
 
-
-/*VÄL-FUNGERANDE KOD / ANALOG-LED / NEDAN:*/
-/*#include "driver/gpio.h"
-#include "driver/ledc.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include <math.h>
-#include <stdio.h>
-#include "AnalogLed.h"
-
-void app_main(void) {
-    AnalogLed_t led;
-    analog_led_init(2, 200, 0.0, &led); // Initialisera med ett fast värde, t.ex. 200, och frekvens
-    setAnalogLed(true, 255, 1.0, &led);
-
-    while (1) {
-        // För att få LED-lampan att lysa jämt:
-        //setAnalogLed(true, 255, 1.0, &led); // Sätt duty cycle till 255 och frekvens till 0.0
-
-        // För att släcka LED-lampan:
-        // setAnalogLed(false, 0, 0.0, &led); // Sätt LED-lampan till av och duty cycle till 0
-
-        // För att få LED-lampan att blinka i sinusvågor:
-        // setAnalogLed(true, 200, 1.0, &led); // Sätt duty cycle till 200 och frekvens till 1.0
-
-        update_analog(&led);
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-}*/
-
-/*#include "AnalogLed.h"
-
-void app_main(void) {
-    AnalogLed led;
-    analogLed_init(&led, 2); //pin 2
-    
-    analogLed_setBlinking(&led, 4000); // blinkning i sinusvågor är på
-    analogLed_setBrightness(&led, 255); // justering av ljuset
-
-    while (1) {
-        analogLed_update(&led); 
-        vTaskDelay(pdMS_TO_TICKS(10)); // uppdatering period
-    }
-}*/
-
-/*#include "AnalogLed.h"
-
-void app_main(void) {
-    AnalogLed led;
-    
-    analogLed_init(&led, 2); // pin 2
-
-    set_led_blink_mode(&led, 1, 0); // blink_on till 1 och blink_off till 0 för blinkning
-    setAnalogLed(&led, 255); // justering av ljuset
-
-
-    while (1) {
-        analogLed_update(&led);
-        vTaskDelay(pdMS_TO_TICKS(10)); // uppdatering period
-    }
-}*/
-
 //nedan ANALOG LED
+
 #include "AnalogLed.h"
 
 AnalogLED_t my_led;
 
 void app_main(void) {
     analog_led_init(&my_led, ANALOG_LED_PIN);
-    analog_set_led(&my_led, 500, 4000); //ljusstyrka (0-1023), ...sek period, vid 500, 0 lyser hela tiden, ingen sinVåg
-    analog_sin_wave(&my_led, 1); // Sinusvågen: slå på 1; stäng av 0
-    
+    analog_set_led(&my_led, 1023, 1); // Ljusstyrka (0-1023), sinus avstängd (0), på (1)
+    analog_sin_wave(&my_led, 400);    // Sinusvågen: slå på med period i millisekunder
+
+    analog_set_led(&my_led, 50, 0); // Ljusstyrka (0-1023), sinus avstängd (0), på (1)
     while (1) {
         analog_led_update(&my_led);
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
 
-//nedan POTENTIOMETER
+
+
+
+//nedan POTENTIOMETER version 1 och 2 (förbättrad)
 
 /*#include <stdio.h>
 #include "Potentiometer/include/Potentiometer.h"
@@ -130,3 +73,51 @@ void app_main() {
         vTaskDelay(pdMS_TO_TICKS(500)); 
     }
 }*/
+
+/*#include <stdio.h>
+#include "Potentiometer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+#define ADC_PIN ADC_CHANNEL_4
+#define POTENTIOMETER_PIN ADC_CHANNEL_5 // Potentiometer för att ändra tröskelvärde
+
+bool rising_edge; // Global boolean för stigande flank
+
+void threshold_handler(int pin, int value, bool rising_edge) {
+    if (rising_edge) {
+        printf("Rising Edge nåddes på ADC pin %d! Värde: %d\n", pin, value);
+    } else {
+        printf("Falling Edge nåddes på ADC pin %d! Värde: %d\n", pin, value);
+    }
+}
+
+void app_main() {
+    adc_sensor_t sensor;
+    adc_sensor_t potentiometer;
+
+    // Initialisera ADC för både sensorn och potentiometern
+    adc_sensor_init(&sensor, ADC_PIN);
+    adc_sensor_init(&potentiometer, POTENTIOMETER_PIN);
+
+    // Här kan vi ställa in rising_edge till true (rising) eller false (falling)
+    adc_sensor_set_on_threshold(&sensor, true, threshold_handler); // Exempel: stigande flank
+
+    while (1) {
+        // Läs potentiometerns värde för att uppdatera tröskelvärdet
+        int potentiometer_value = adc_sensor_get_value(&potentiometer);
+
+        // Uppdatera sensorn och passera potentiometerns värde
+        adc_sensor_update(&sensor, potentiometer_value);
+
+        // Visa den aktuella statusen för rising_edge
+        if (sensor.risingEdge) {
+            printf("Rising Edge är aktiv (true)\n");
+        } else {
+            printf("Falling Edge är aktiv (false)\n");
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(500)); // Fördröjning
+    }
+}*/
+
