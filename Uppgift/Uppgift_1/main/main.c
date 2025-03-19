@@ -90,7 +90,7 @@ void app_main(void) {
     }
 }*/
 
-#include "AnalogLed.h"
+/*#include "AnalogLed.h"
 
 AnalogLED_t my_led;
 
@@ -106,31 +106,25 @@ void app_main(void) {
         analog_led_update(&my_led);
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
-}
+}*/
 
 
 
 
 /*nedan1: Potentiometer som jag har påbörjat*/
-/*#include "driver/gpio.h"
-#include "driver/adc.h"
 #include <stdio.h>
-#include "Potentiometer\include\Potentiometer.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-
-Potentiometer_t pot1;
-
-void pot1_onThreshold(int channel, uint32_t value) {
-    printf("Potentiometer threshold crossed on channel %d with value: %d\n", channel, value);
-}
+#include "Potentiometer.h"
 
 void app_main(void) {
-    pot_init(&pot1, ADC_CHANNEL_0); 
-    pot_setOnThreshold(&pot1, 2048, true, pot1_onThreshold); // Exempelvärden för threshold och risingEdge
+    MeasurementDevice sensor; // Skapa en instans av enheten.
+   
+    init(sensor, ADC_CHANNEL_4); // Initiera sensorn med kanal.
+    setOnThreshold(sensor, 2000, true, threshold_callback, NULL); // Ange tröskelvärde och callback.
+    activateDevice(sensor, true); // Aktivera enheten.
 
-    while (true) {
-        pot_update(&pot1);
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+    while (1) {
+        update(sensor); // Uppdatera sensorns status.
+        printf("Nuvarande värde: %d\n", getValue(sensor)); // Skriv ut det aktuella värdet.
+        vTaskDelay(pdMS_TO_TICKS(100)); // Vänta i 100 ms innan nästa iteration.
     }
-}*/
+}

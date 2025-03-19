@@ -47,7 +47,7 @@ void app_main(void) {
 
 //nedan POTENTIOMETER version 1 och 2 (förbättrad)
 
-/*#include <stdio.h>
+*#include <stdio.h>
 #include "Potentiometer/include/Potentiometer.h"
 #include "hal/adc_types.h"
 #include "esp_adc/adc_oneshot.h"
@@ -68,9 +68,11 @@ void app_main() {
         adc_update(&sensor);
         vTaskDelay(pdMS_TO_TICKS(500)); 
     }
-}*/
+}
 
-#include <stdio.h>
+
+//Potentiometer - increment, decrement
+/*#include <stdio.h>
 #include "Potentiometer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -85,15 +87,48 @@ void threshold_handler(int pin, int value, bool rising_edge) {
     }
 }
 
+
 void app_main() {
     adc_sensor_t sensor;
     adc_init(&sensor, ADC_PIN);
 
-    // Inställning: true för Rising Edge, false för Falling Edge
-    adc_set_on_threshold(&sensor, 2000, true, threshold_handler);
+    // Sätt threshold till 2000 och registrera callback
+    adc_set_on_threshold(&sensor, 2000, threshold_handler, true, true);
 
     while (1) {
         adc_update(&sensor);
         vTaskDelay(pdMS_TO_TICKS(500));
     }
+}*/
+
+//med get-funktion
+
+
+/*#include "potentiometer.h"
+
+#define ADC_PIN 4 // Specificera vilken ADC pin som används
+
+// Callback-funktion för tröskelhändelser
+void threshold_handler(int adc_pin, int value, bool rising_edge) {
+    if (rising_edge) {
+        printf("Rising Edge nåddes på ADC pin %d! Värde: %d\n", adc_pin, value);
+    } else {
+        printf("Falling Edge nåddes på ADC pin %d! Värde: %d\n", adc_pin, value);
+    }
 }
+
+void app_main() {
+    adc_sensor_t sensor;
+
+    // Initiera ADC-sensorn
+    adc_init(&sensor, ADC_PIN);
+
+    // Sätt tröskelvärde till 1500 och registrera callback för rising och falling edge
+    adc_set_on_threshold(&sensor, 1500, threshold_handler, true, true);
+
+    // Loopa för att kontinuerligt läsa av sensorn
+    while (1) {
+        adc_update(&sensor); // Uppdatera sensorn och kontrollera eventuella tröskelövergångar
+        vTaskDelay(pdMS_TO_TICKS(500)); // Fördröjning på 500 ms
+    }
+}*/

@@ -1,15 +1,13 @@
-
 #ifndef POTENTIOMETER_H
 #define POTENTIOMETER_H
 
-#include "driver/adc.h"
 #include "esp_adc/adc_oneshot.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
 typedef void (*ThresholdCallback)(int adc_pin, int value, void *args);
 
-#define FILTER_SIZE 5 
+#define FILTER_SIZE 5
 
 typedef struct {
     int adc_pin;
@@ -26,14 +24,10 @@ typedef struct {
 } MeasurementDevice;
 
 void init(MeasurementDevice *device, int adc_pin);
-void update(MeasurementDevice *device);
+void updateMeasurementDevice(MeasurementDevice *device); 
 int getValue(MeasurementDevice *device);
 void setOnThreshold(MeasurementDevice *device, int threshold, bool is_rising, ThresholdCallback callback, void *args);
 void activateDevice(MeasurementDevice *device, bool state);
 void threshold_callback(int adc_pin, int value, void *args);
 
 #endif
-
-
-
-
