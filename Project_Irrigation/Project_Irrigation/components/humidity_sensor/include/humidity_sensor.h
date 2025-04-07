@@ -1,0 +1,88 @@
+
+//Senast fungerande version:
+/*#ifndef HUMIDITY_SENSOR_H
+#define HUMIDITY_SENSOR_H
+
+#include <stdint.h>
+#include <stdbool.h>
+#include "esp_adc/adc_oneshot.h"
+
+typedef void (*HumidityThresholdCallback)(int adc_pin, int value, void *args);
+
+void init_humidity_sensor(int adc_pin);
+void update_humidity_sensor(void);
+int get_humidity_value(void);
+void set_humidity_threshold(int threshold, bool is_rising, HumidityThresholdCallback callback, void *args);
+void activate_humidity_sensor(bool state);
+
+#endif*/
+
+//allra senaste version:
+/*#ifndef HUMIDITY_SENSOR_H
+#define HUMIDITY_SENSOR_H
+
+#include <stdint.h>
+#include <stdbool.h>
+#include "esp_adc/adc_oneshot.h"
+#include "adc_manager.h"
+
+void init_humidity_sensor(int adc_pin);
+int read_humidity_value(void);
+
+#endif*/
+
+//ett nytt försök som fungerade sist med fel:
+/*#ifndef HUMIDITY_SENSOR_H
+#define HUMIDITY_SENSOR_H
+
+#include "adc_manager.h"
+
+#define HUMIDITY_DRY_THRESHOLD 2000
+
+void humidity_sensor_init(void);
+int read_humidity(void);
+bool is_soil_dry(int humidity_value);
+
+#endif*/
+
+//nytt försök 2
+/*#ifndef HUMIDITY_SENSOR_H
+#define HUMIDITY_SENSOR_H
+
+#include "adc_manager.h"
+
+#define HUMIDITY_DRY_THRESHOLD 2000  // Justera tröskelvärdet enligt projektets krav
+
+void humidity_sensor_init(void);
+int read_humidity(void);
+bool is_soil_dry(int humidity_value);
+void humidity_sensor_shutdown(void);
+
+#endif*/
+
+//några justeringar... temperaturberoende tröskel
+
+#ifndef HUMIDITY_SENSOR_H
+#define HUMIDITY_SENSOR_H
+
+#include <stdint.h>
+#include <stdbool.h>
+#include "esp_adc/adc_oneshot.h"
+#include "adc_manager.h"
+
+#define BASE_HUMIDITY_DRY_THRESHOLD 2000
+#define HUMIDITY_TEMP_COEFFICIENT 20 // Justeringsfaktor för temperaturpåverkan
+
+void humidity_sensor_init(void);
+int read_humidity(void);
+bool is_soil_dry(int humidity_value, float temperature);
+void humidity_sensor_shutdown(void);
+
+#endif
+
+
+
+
+
+
+

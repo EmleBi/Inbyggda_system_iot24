@@ -50,7 +50,7 @@ void app_main(void) {
 
 
 //nedan1: Potentiometer som fungerar som det ska
-/*#include <stdio.h>
+#include <stdio.h>
 #include "Potentiometer.h"
 
 void app_main(void) {
@@ -65,11 +65,11 @@ void app_main(void) {
         printf("Nuvarande värde: %d\n", getValue(&sensor)); // Skriv ut det aktuella värdet.
         vTaskDelay(pdMS_TO_TICKS(100)); // Vänta i 100 ms innan nästa iteration.
     }
-}*/
+}
 
 //Nedan kod till NVS configuration
 
-#include <stdio.h>
+/*#include <stdio.h>
 #include "Config.h"
 
 void app_main() {
@@ -90,4 +90,4 @@ void app_main() {
     // Visa uppdaterade värden
     printf("Updated Device Name: %s\n", getDeviceName(&config));
     printf("Updated Serial Number: %s\n", getSerialNumber(&config));
-}
+}*/
