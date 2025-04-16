@@ -157,7 +157,7 @@ int check_temp_status(float temperature) {
 }*/
 
 //nytt försök 2
-#include "temp_sensor.h"
+/*#include "temp_sensor.h"
 #include "esp_log.h"
 #include <math.h>
 #include "esp_mac.h"
@@ -217,4 +217,85 @@ int check_temp_status(float temperature) {
 
 void temp_sensor_shutdown(void) {
     ESP_LOGI(TAG, "Temperature sensor shutting down for deep sleep");
+}*/
+
+/*#include "temp_sensor.h"
+#include "esp_log.h"
+#include <math.h>
+#include "esp_mac.h" // Explicit inkludering
+#include "adc_manager.h"
+#include <stdbool.h>
+#include "driver/gpio.h" // För GPIO-funktioner
+
+#define HIGH_TEMP_THRESHOLD 30  // Exempel på högt temperaturtröskelvärde (celsius)
+#define LOW_TEMP_THRESHOLD 10   // Exempel på lågt temperaturtröskelvärde (celsius)
+
+// Konfigurationer för fall där sdkconfig inte laddas
+#ifndef CONFIG_FREERTOS_HZ
+#define CONFIG_FREERTOS_HZ 1000
+#endif
+
+#ifndef CONFIG_LOG_MAXIMUM_LEVEL
+#define CONFIG_LOG_MAXIMUM_LEVEL ESP_LOG_INFO
+#endif
+
+static const char *TAG = "TempSensor";
+
+#define NTC_BETA 3950.0f
+#define NTC_R25 10000.0f
+#define NTC_R_REF 10000.0f
+#define VOLTAGE_REF 3.3f
+#define ADC_MAX 4095
+
+void temp_sensor_init(void) {
+    ESP_LOGI(TAG, "Temperature sensor initialized using ADC channel %d", ADC_MGR_CH_TEMPERATURE);
 }
+
+float read_temperature(void) {
+    int raw_value = adc_manager_read(ADC_MGR_CH_TEMPERATURE);
+    if (raw_value < 0) {
+        ESP_LOGE(TAG, "ADC read error");
+        return NAN;
+    }
+
+    float voltage = raw_value * (VOLTAGE_REF / ADC_MAX);
+    ESP_LOGI(TAG, "Voltage: %.3f V (Raw: %d)", voltage, raw_value);
+
+    float resistance = NTC_R_REF * (VOLTAGE_REF - voltage) / voltage;
+    if (resistance <= 0) {
+        ESP_LOGE(TAG, "Invalid resistance: %.2f Ohms", resistance);
+        return NAN;
+    }
+    ESP_LOGI(TAG, "Resistance: %.2f Ohms", resistance);
+
+    float steinhart = log(resistance / NTC_R25) / NTC_BETA;
+    steinhart += 1.0f / (25.0f + 273.15f); // Omvandling till Kelvin
+    float temperature_k = 1.0f / steinhart;
+    float temperature_c = temperature_k - 273.15f;
+
+    ESP_LOGI(TAG, "Temperature calculated: %.2f°C", temperature_c);
+    return temperature_c;
+}
+
+int check_temp_status(float temperature) {
+    if (isnan(temperature)) {
+        ESP_LOGE(TAG, "Temperature reading invalid");
+        return -2; // Indikerar läsfel
+    }
+
+    if (temperature > HIGH_TEMP_THRESHOLD) {
+        ESP_LOGW(TAG, "High temperature detected: %.2f°C", temperature);
+        return 1;
+    } else if (temperature < LOW_TEMP_THRESHOLD) {
+        ESP_LOGW(TAG, "Low temperature detected: %.2f°C", temperature);
+        return -1;
+    }
+
+    ESP_LOGI(TAG, "Temperature normal: %.2f°C", temperature);
+    return 0;
+}
+
+void temp_sensor_shutdown(void) {
+    gpio_set_level(TEMP_SENSOR_ADC_PIN, 0); // Stäng av GPIO
+    ESP_LOGI(TAG, "Temperature sensor GPIO shut down");
+}*/

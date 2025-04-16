@@ -180,10 +180,12 @@ void humidity_sensor_shutdown(void) {
 
 //några justeringar: 
 
-#include "humidity_sensor.h"
+/*#include "humidity_sensor.h"
 #include "adc_manager.h"
 #include "esp_log.h"
 #include <stdbool.h>
+#include "driver/gpio.h" // För GPIO-funktioner
+
 
 // Konfigurationer för fall där sdkconfig inte laddas
 #ifndef CONFIG_FREERTOS_HZ
@@ -215,5 +217,198 @@ bool is_soil_dry(int humidity_value, float temperature) {
 }
 
 void humidity_sensor_shutdown(void) {
-    ESP_LOGI(TAG, "Humidity sensor shutting down for deep sleep");
+    gpio_set_level(HUMIDITY_SENSOR_ADC_PIN, 0); // Stäng av GPIO
+    ESP_LOGI(TAG, "Humidity sensor GPIO shut down");
+}*/
+
+//förenklad version: 
+// humidity_sensor.c
+/*#include "humidity_sensor.h"
+#include "esp_adc/adc_oneshot.h"
+#include "esp_log.h"
+
+// Tag för loggning
+static const char *TAG = "MoistureSensor";
+
+// Hantering av ADC för sensorn
+static adc_oneshot_unit_handle_t adc_handle = NULL;
+
+void humidity_sensor_init() {
+    // Initiering av ADC-enhet
+    adc_oneshot_unit_init_cfg_t unit_cfg = {
+        .unit_id = ADC_UNIT_1,
+        .ulp_mode = ADC_ULP_MODE_DISABLE
+    };
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&unit_cfg, &adc_handle));
+
+    // Konfiguration av ADC-kanal
+    adc_oneshot_chan_cfg_t chan_cfg = {
+        .atten = ADC_ATTEN_DB_12,    // Maximalt spänningsintervall
+        .bitwidth = ADC_BITWIDTH_12 // 12-bitars upplösning
+    };
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, HUMIDITY_SENSOR_ADC_PIN, &chan_cfg));
+    ESP_LOGI(TAG, "Humidity sensor initialized on channel %d", HUMIDITY_SENSOR_ADC_PIN);
 }
+
+uint8_t get_humidity_level() {
+    int raw_value = 0;
+    ESP_ERROR_CHECK(adc_oneshot_read(adc_handle, HUMIDITY_SENSOR_ADC_PIN, &raw_value));
+
+    // Kalibreringsgränser baserade på experimentella värden
+    int min_raw = 200;   // Torr jord (justera vid behov)
+    int max_raw = 3200;  // Våt jord (justera vid behov)
+
+    // Mappning av råvärden till procent (0–100%)
+    int calibrated_value = (raw_value - min_raw) * 100 / (max_raw - min_raw);
+
+    // Begränsa värden till intervall 0–100%
+    if (calibrated_value < 0) calibrated_value = 0;
+    if (calibrated_value > 100) calibrated_value = 100;
+
+    ESP_LOGD(TAG, "Raw ADC value: %d → Calibrated humidity: %d%%", raw_value, calibrated_value);
+    return (uint8_t)calibrated_value;
+}*/
+
+//fungerar men inte rätt
+/*#include "humidity_sensor.h"
+#include <inttypes.h>
+
+// Konfigurationer för fall där sdkconfig inte laddas
+#ifndef CONFIG_FREERTOS_HZ
+#define CONFIG_FREERTOS_HZ 1000
+#endif
+
+#ifndef CONFIG_LOG_MAXIMUM_LEVEL
+#define CONFIG_LOG_MAXIMUM_LEVEL ESP_LOG_INFO
+#endif
+
+static const char* TAG = "HumiditySensor";
+static adc_oneshot_unit_handle_t adc_handle;
+static adc_channel_t sensor_channel;
+
+void humidity_sensor_init(adc_channel_t channel) {
+    sensor_channel = channel;
+    
+    // Initiera ADC med oneshot-läge
+    adc_oneshot_unit_init_cfg_t init_config = {
+        .unit_id = ADC_UNIT_1,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config, &adc_handle));
+
+    // Konfigurera ADC-kanalen
+    adc_oneshot_chan_cfg_t config = {
+        .atten = ADC_ATTEN_DB_12,
+        .bitwidth = ADC_BITWIDTH_12,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, sensor_channel, &config));
+}
+
+int humidity_sensor_read(void) {
+    int raw_value;
+    ESP_ERROR_CHECK(adc_oneshot_read(adc_handle, sensor_channel, &raw_value));
+    
+    // Invertera värdena (0% = torrt, 100% = fuktigt)
+    int percentage = 100 - ((raw_value * 100) / 4095);
+    ESP_LOGI(TAG, "Moisture: %d%% (Raw: %d)", percentage, raw_value);
+    return percentage;
+}
+
+bool humidity_sensor_is_dry(void) {
+    return humidity_sensor_read() < HUMIDITY_THRESHOLD;
+}*/
+
+//kod med extra gpio-pins för deep-sleep:
+
+#include "humidity_sensor.h"
+#include <esp_log.h>
+#include "driver/gpio.h"  // Header for GPIO functions
+
+static const char* TAG = "HumiditySensor";
+static adc_oneshot_unit_handle_t adc_handle;
+static adc_channel_t sensor_channel;
+
+// Initialize the humidity sensor
+void humidity_sensor_init(adc_channel_t channel) {
+    sensor_channel = channel;
+
+    adc_oneshot_unit_init_cfg_t init_config = {
+        .unit_id = ADC_UNIT_1,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config, &adc_handle));
+
+    adc_oneshot_chan_cfg_t config = {
+        .atten = ADC_ATTEN_DB_12,
+        .bitwidth = ADC_BITWIDTH_12,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, sensor_channel, &config));
+    ESP_LOGI(TAG, "Humidity sensor initialized on ADC channel %d", channel);
+}
+
+// Read value from the humidity sensor
+int humidity_sensor_read(void) {
+    int raw_value;
+    ESP_ERROR_CHECK(adc_oneshot_read(adc_handle, sensor_channel, &raw_value));
+    int percentage = 100 - ((raw_value * 100) / 4095);
+    ESP_LOGI(TAG, "Soil moisture: %d%% (Raw value: %d)", percentage, raw_value);
+    return percentage;
+}
+
+// Check if the soil is dry
+bool humidity_sensor_is_dry(void) {
+    int humidity = humidity_sensor_read();  // Read humidity level
+    ESP_LOGI(TAG, "Checking soil moisture: %d%%", humidity);
+    return humidity < HUMIDITY_THRESHOLD;  // Compare against threshold
+}
+
+// Deinitialize the humidity sensor
+void humidity_sensor_deinit(void) {
+    ESP_LOGI(TAG, "Deinitializing humidity sensor...");
+    ESP_ERROR_CHECK(adc_oneshot_del_unit(adc_handle));
+    gpio_reset_pin(sensor_channel);  // Disconnect GPIO for the sensor
+    ESP_LOGI(TAG, "Humidity sensor deinitialized.");
+}
+
+//ds-kod
+/*#include "humidity_sensor.h"
+#include <esp_log.h>
+#include "driver/gpio.h"
+
+static const char* TAG = "HumiditySensor";
+static adc_oneshot_unit_handle_t adc_handle;
+static adc_channel_t sensor_channel;
+
+void humidity_sensor_init(adc_channel_t channel) {
+    sensor_channel = channel;
+    adc_oneshot_unit_init_cfg_t init_config = {
+        .unit_id = ADC_UNIT_1,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config, &adc_handle));
+    
+    adc_oneshot_chan_cfg_t config = {
+        .atten = ADC_ATTEN_DB_12,
+        .bitwidth = ADC_BITWIDTH_12,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, sensor_channel, &config));
+    ESP_LOGI(TAG, "Humidity sensor initialized on ADC channel %d", channel);
+}
+
+int humidity_sensor_read(void) {
+    int raw_value;
+    ESP_ERROR_CHECK(adc_oneshot_read(adc_handle, sensor_channel, &raw_value));
+    int percentage = 100 - ((raw_value * 100) / 4095);
+    ESP_LOGI(TAG, "Soil moisture: %d%% (Raw value: %d)", percentage, raw_value);
+    return percentage;
+}
+
+bool humidity_sensor_is_dry(void) {
+    int humidity = humidity_sensor_read();
+    ESP_LOGI(TAG, "Checking soil moisture: %d%%", humidity);
+    return humidity < HUMIDITY_THRESHOLD;
+}
+
+void humidity_sensor_deinit(void) {
+    ESP_LOGI(TAG, "Deinitializing humidity sensor...");
+    ESP_ERROR_CHECK(adc_oneshot_del_unit(adc_handle));
+    gpio_reset_pin(sensor_channel);
+    ESP_LOGI(TAG, "Humidity sensor deinitialized.");
+}*/

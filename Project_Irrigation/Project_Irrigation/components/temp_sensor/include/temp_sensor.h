@@ -46,9 +46,10 @@ int check_temp_status(float temperature);
 #endif*/
 
 //nytt försök 2:
-#ifndef TEMP_SENSOR_H
+/*#ifndef TEMP_SENSOR_H
 #define TEMP_SENSOR_H
 
+#define TEMP_SENSOR_ADC_PIN ADC_CHANNEL_6
 #define HIGH_TEMP_THRESHOLD 30  // Exempel på högt temperaturtröskelvärde
 #define LOW_TEMP_THRESHOLD 10   // Exempel på lågt temperaturtröskelvärde
 
@@ -57,5 +58,5 @@ float read_temperature(void);
 int check_temp_status(float temperature);
 void temp_sensor_shutdown(void);
 
-#endif
+#endif*/
 

@@ -62,7 +62,8 @@ void humidity_sensor_shutdown(void);
 
 //några justeringar... temperaturberoende tröskel
 
-#ifndef HUMIDITY_SENSOR_H
+//ej fungerande
+/*#ifndef HUMIDITY_SENSOR_H
 #define HUMIDITY_SENSOR_H
 
 #include <stdint.h>
@@ -70,6 +71,7 @@ void humidity_sensor_shutdown(void);
 #include "esp_adc/adc_oneshot.h"
 #include "adc_manager.h"
 
+#define HUMIDITY_SENSOR_ADC_PIN ADC_CHANNEL_4
 #define BASE_HUMIDITY_DRY_THRESHOLD 2000
 #define HUMIDITY_TEMP_COEFFICIENT 20 // Justeringsfaktor för temperaturpåverkan
 
@@ -78,11 +80,81 @@ int read_humidity(void);
 bool is_soil_dry(int humidity_value, float temperature);
 void humidity_sensor_shutdown(void);
 
+#endif*/
+
+//förenklad version:
+
+// humidity_sensor.h
+/*#ifndef HUMIDITY_SENSOR_H
+#define HUMIDITY_SENSOR_H
+
+#include <stdint.h>
+#include "esp_adc/adc_oneshot.h"
+
+#define HUMIDITY_SENSOR_ADC_PIN ADC_CHANNEL_4
+
+void humidity_sensor_init(void);
+uint8_t get_humidity_level(void);
+
+#endif*/
+
+//fungerar men inte rätt
+
+/*#ifndef HUMIDITY_SENSOR_H
+#define HUMIDITY_SENSOR_H
+
+#include <esp_adc/adc_oneshot.h>
+#include <esp_log.h>
+
+#define HUMIDITY_THRESHOLD 30  // Under detta värde anses jorden vara torr
+
+void humidity_sensor_init(adc_channel_t channel);
+int humidity_sensor_read(void);
+bool humidity_sensor_is_dry(void);
+
+#endif*/
+
+/*#ifndef HUMIDITY_SENSOR_H
+#define HUMIDITY_SENSOR_H
+
+#include <esp_adc/adc_oneshot.h>
+#include <esp_log.h>
+
+#define HUMIDITY_THRESHOLD 30
+
+void humidity_sensor_init(adc_channel_t channel);
+int humidity_sensor_read(void);
+bool humidity_sensor_is_dry(void);
+void humidity_sensor_deinit(void);
+
+#endif*/
+
+#ifndef HUMIDITY_SENSOR_H
+#define HUMIDITY_SENSOR_H
+
+#include <esp_adc/adc_oneshot.h>
+#include <esp_log.h>
+
+#define HUMIDITY_THRESHOLD 30
+
+void humidity_sensor_init(adc_channel_t channel);
+int humidity_sensor_read(void);
+bool humidity_sensor_is_dry(void);
+void humidity_sensor_deinit(void);
+
 #endif
 
+//ds-kod
 
+/*#ifndef HUMIDITY_SENSOR_H
+#define HUMIDITY_SENSOR_H
+#include <esp_adc/adc_oneshot.h>
+#include <esp_log.h>
 
+#define HUMIDITY_THRESHOLD 30
 
-
-
-
+void humidity_sensor_init(adc_channel_t channel);
+int humidity_sensor_read(void);
+bool humidity_sensor_is_dry(void);
+void humidity_sensor_deinit(void);
+#endif*/
